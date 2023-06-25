@@ -1,13 +1,13 @@
 package at.htlkaindorf.gui;
 
 import at.htlkaindorf.config.Config;
+import at.htlkaindorf.config.utils.BannerConfig;
 import at.htlkaindorf.config.utils.HostnameConfig;
 import at.htlkaindorf.config.utils.LoggingSynchronousConfig;
+import at.htlkaindorf.config.utils.PasswordEncryptionConfig;
 import at.htlkaindorf.exception.InvalidConfigException;
 
 import javax.swing.*;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,6 +18,10 @@ public class BuilderGUI extends JFrame {
     private JButton btSetHostname;
     private JCheckBox cbLoggingSync;
     private JCheckBox cbPasswordEncryption;
+    private JButton btSetBanner;
+    private JTextField tfBanner;
+    private JButton btRemoveHostname;
+    private JButton btRemoveBanner;
 
     private List<Config> configs;
 
@@ -28,6 +32,7 @@ public class BuilderGUI extends JFrame {
         initComponents();
         pack();
         setLocationRelativeTo(null);
+
     }
 
     private void initComponents() {
@@ -46,6 +51,23 @@ public class BuilderGUI extends JFrame {
             }
         });
 
+        this.btSetBanner.addActionListener(e -> {
+            try {
+                onSetBanner();
+            } catch (InvalidConfigException ex) {
+                JOptionPane.showMessageDialog(
+                        null,
+                        ex.getMessage(),
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE
+                );
+            }
+        });
+
+        this.btRemoveBanner.addActionListener(e -> onRemoveBanner());
+        this.btRemoveHostname.addActionListener(e -> onRemoveHostname());
+        this.cbLoggingSync.addActionListener(e -> onAddLoggingSynchronous());
+        this.cbPasswordEncryption.addActionListener(e -> onAddPasswordEncryption());
     }
 
     private void onSetHostname() throws InvalidConfigException {
@@ -66,6 +88,57 @@ public class BuilderGUI extends JFrame {
         printCurrentConfig();
     }
 
+    private void onAddPasswordEncryption() {
+        PasswordEncryptionConfig config = new PasswordEncryptionConfig();
+
+        if (this.cbPasswordEncryption.isSelected()) {
+            this.configs.add(config);
+        } else {
+            this.configs.remove(config);
+        }
+
+        printCurrentConfig();
+    }
+
+    private void onSetBanner() throws InvalidConfigException {
+        String banner = this.tfBanner.getText();
+
+        if (banner.isBlank()) {
+            throw new InvalidConfigException("Please Input your banner!");
+        }
+
+        BannerConfig config = new BannerConfig(banner);
+
+        if (!this.configs.contains(config)) {
+            this.configs.add(config);
+        } else {
+            this.configs.remove(config);
+        }
+
+        printCurrentConfig();
+    }
+
+    private void onRemoveHostname() {
+        this.configs.remove(new HostnameConfig(""));
+        printCurrentConfig();
+    }
+
+    private void onRemoveBanner() {
+        this.configs.remove(new BannerConfig(""));
+        printCurrentConfig();
+    }
+
+    private void onAddLoggingSynchronous() {
+        LoggingSynchronousConfig config = new LoggingSynchronousConfig();
+
+        if (this.cbLoggingSync.isSelected()) {
+            this.configs.add(config);
+        } else {
+            this.configs.remove(config);
+        }
+
+        printCurrentConfig();
+    }
 
     private void printCurrentConfig() {
         StringBuilder output = new StringBuilder();

@@ -2,10 +2,9 @@ package at.htlkaindorf.config.utils;
 
 import at.htlkaindorf.config.Config;
 
-public class LoggingSynchronousConfig extends Config {
+public class PasswordEncryptionConfig extends Config {
     @Override
     public String generateConfigurationString() {
-        return "line console 0\n" +
-                "logging synchronous";
+        return "service password-encryption";
     }
 }
