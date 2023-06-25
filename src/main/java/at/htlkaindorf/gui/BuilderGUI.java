@@ -27,7 +27,6 @@ public class BuilderGUI extends JFrame {
     private ConfigManager configs;
     private VlanListModel vlanListModel;
 
-
     // Vlan PopUp Menu
     private JPopupMenu pmVlanConfigs;
     private JMenuItem miCreateVlanConfig;

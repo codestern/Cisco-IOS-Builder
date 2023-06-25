@@ -1,6 +1,7 @@
 package at.htlkaindorf.gui;
 
 import at.htlkaindorf.config.utils.VlanConfig;
+import at.htlkaindorf.exception.InvalidConfigException;
 
 import javax.swing.*;
 import java.awt.event.*;
@@ -25,9 +26,27 @@ public class VlanDialog extends JDialog {
         setLocationRelativeTo(null);
     }
 
-
     private void initComponents() {
-        btOK.addActionListener(e -> onOK());
+        btOK.addActionListener(e -> {
+            try {
+                onOK();
+            } catch (NumberFormatException nfe) {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "Not a valid number as input!",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE
+                );
+            }
+            catch (InvalidConfigException ex) {
+                JOptionPane.showMessageDialog(
+                        null,
+                        ex.getMessage(),
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE
+                );
+            }
+        });
         btCancel.addActionListener(e -> onCancel());
 
         if (this.config.getVlanID() != VlanConfig.NOT_CONFIGURED_ID) {
@@ -49,9 +68,18 @@ public class VlanDialog extends JDialog {
                 JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
     }
 
-    private void onOK() {
+    private void onOK() throws NumberFormatException, InvalidConfigException {
         this.config.setName(this.tfVlanName.getText());
         this.config.setVlanID(Integer.parseInt(this.tfVlanID.getText()));
+
+        if (this.config.getName().isBlank()) {
+            throw new InvalidConfigException("VLAN needs a name!");
+        }
+
+        if (this.config.getVlanID() < VlanConfig.VLAN_ID_MINIMUM ||
+                this.config.getVlanID() > VlanConfig.VLAN_ID_MAXIMUM) {
+            throw new InvalidConfigException("Invalid Vlan ID");
+        }
 
         dispose();
     }

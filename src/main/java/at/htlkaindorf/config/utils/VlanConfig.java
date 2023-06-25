@@ -4,6 +4,8 @@ import at.htlkaindorf.config.Config;
 
 public class VlanConfig extends Config {
     public static final int NOT_CONFIGURED_ID = -1;
+    public static final int VLAN_ID_MINIMUM = 2;
+    public static final int VLAN_ID_MAXIMUM = 4094;
 
     private int vlanID;
     private String name;

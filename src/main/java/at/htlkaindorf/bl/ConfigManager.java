@@ -9,6 +9,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * ConfigManager
+ * Class for storing all the Configurations and build the complete Script
+**/
 public class ConfigManager {
     private final List<Config> configs;
 
@@ -16,6 +20,11 @@ public class ConfigManager {
         this.configs = new ArrayList<>();
     }
 
+    /**
+     * Method to add a configuration to the manager.
+     * If the configuration already exists, it will be updated
+     * @param config The configuration to update or insert
+    **/
     public void addConfig(Config config) {
         if (!this.configs.contains(config)) {
             this.configs.add(config);
@@ -24,10 +33,18 @@ public class ConfigManager {
         }
     }
 
+    /**
+     * Method to remove a configuration from the manager
+     * @param config The configuration to remove
+     */
     public void removeConfig(Config config) {
         this.configs.remove(config);
     }
 
+    /**
+     * Method to update a configuration from the manager
+     * @param config The configuration to update
+     */
     public void updateConfig(Config config) {
         int index = configs.indexOf(config);
 
@@ -36,6 +53,10 @@ public class ConfigManager {
         }
     }
 
+    /**
+     * Methode to generate the configuration script based on the stored configs
+     * @return String containing the configuration script
+     */
     public String generateConfigScript() {
         StringBuilder output = new StringBuilder();
 
@@ -46,6 +67,11 @@ public class ConfigManager {
         return output.toString();
     }
 
+    /**
+     * Writes the script to an inserted file
+     * @param file the file to write the script to
+     * @throws IOException
+     */
     public void exportConfigScript(File file) throws IOException {
         String script = this.generateConfigScript();
         FileWriter fileWriter = new FileWriter(file);
@@ -53,5 +79,4 @@ public class ConfigManager {
         writer.write(script);
         writer.close();
     }
-
 }
