@@ -1,15 +1,15 @@
 package at.htlkaindorf.gui;
 
+import at.htlkaindorf.bl.ConfigManager;
 import at.htlkaindorf.config.Config;
-import at.htlkaindorf.config.utils.BannerConfig;
-import at.htlkaindorf.config.utils.HostnameConfig;
-import at.htlkaindorf.config.utils.LoggingSynchronousConfig;
-import at.htlkaindorf.config.utils.PasswordEncryptionConfig;
+import at.htlkaindorf.config.utils.*;
 import at.htlkaindorf.exception.InvalidConfigException;
+import at.htlkaindorf.model.VlanListModel;
 
 import javax.swing.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+
 
 public class BuilderGUI extends JFrame {
     private JPanel pnContent;
@@ -22,21 +22,35 @@ public class BuilderGUI extends JFrame {
     private JTextField tfBanner;
     private JButton btRemoveHostname;
     private JButton btRemoveBanner;
+    private JList<VlanConfig> lsVlanConfigs;
 
-    private List<Config> configs;
+    private ConfigManager configs;
+    private VlanListModel vlanListModel;
+
+
+    // Vlan PopUp Menu
+    private JPopupMenu pmVlanConfigs;
+    private JMenuItem miCreateVlanConfig;
+    private JMenuItem miUpdateVlanConfig;
+    private JMenuItem miRemoveVlanConfig;
 
     public BuilderGUI(String title) {
         setTitle(title);
         setContentPane(this.pnContent);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
+        createPopUpMenus();
         initComponents();
         pack();
         setLocationRelativeTo(null);
-
     }
 
     private void initComponents() {
-        this.configs = new ArrayList<>();
+        this.configs = new ConfigManager();
+        this.configs.addConfig(new InitialConfig());
+        printCurrentConfig();
+
+        this.vlanListModel = new VlanListModel();
+        this.lsVlanConfigs.setModel(this.vlanListModel);
 
         this.btSetHostname.addActionListener(e -> {
             try {
@@ -64,10 +78,42 @@ public class BuilderGUI extends JFrame {
             }
         });
 
+
+        // Add PopUpMenu to List
+        lsVlanConfigs.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    pmVlanConfigs.show(
+                            e.getComponent(),
+                            e.getX(),
+                            e.getY()
+                    );
+                }
+            }
+        });
+
+
         this.btRemoveBanner.addActionListener(e -> onRemoveBanner());
         this.btRemoveHostname.addActionListener(e -> onRemoveHostname());
         this.cbLoggingSync.addActionListener(e -> onAddLoggingSynchronous());
         this.cbPasswordEncryption.addActionListener(e -> onAddPasswordEncryption());
+
+        this.miCreateVlanConfig.addActionListener(e -> onAddVlanConfig());
+        this.miRemoveVlanConfig.addActionListener(e -> onRemoveVlanConfig());
+        this.miUpdateVlanConfig.addActionListener(e -> onUpdateVlanConfig());
+    }
+
+    private void createPopUpMenus() {
+        // VlanConfig PopUp Menu
+        this.pmVlanConfigs = new JPopupMenu("VLAN Configs");
+        this.miCreateVlanConfig = new JMenuItem("Create VLAN");
+        this.miRemoveVlanConfig = new JMenuItem("Remove VLAN");
+        this.miUpdateVlanConfig = new JMenuItem("Update VLAN");
+
+        this.pmVlanConfigs.add(miCreateVlanConfig);
+        this.pmVlanConfigs.add(miRemoveVlanConfig);
+        this.pmVlanConfigs.add(miUpdateVlanConfig);
     }
 
     private void onSetHostname() throws InvalidConfigException {
@@ -78,12 +124,7 @@ public class BuilderGUI extends JFrame {
             throw new InvalidConfigException("Please enter the hostname first!");
         }
 
-        if (!this.configs.contains(config)) {
-            this.configs.add(config);
-        } else {
-            this.configs.remove(config);
-            this.configs.add(config);
-        }
+        this.configs.addConfig(config);
 
         printCurrentConfig();
     }
@@ -92,12 +133,27 @@ public class BuilderGUI extends JFrame {
         PasswordEncryptionConfig config = new PasswordEncryptionConfig();
 
         if (this.cbPasswordEncryption.isSelected()) {
-            this.configs.add(config);
+            this.configs.addConfig(config);
         } else {
-            this.configs.remove(config);
+            this.configs.removeConfig(config);
         }
 
         printCurrentConfig();
+    }
+
+    private void onAddVlanConfig() {
+        VlanConfig config = new VlanConfig(VlanConfig.NOT_CONFIGURED_ID, "");
+
+        VlanDialog dialog = new VlanDialog(config);
+
+        dialog.setVisible(true);
+
+
+        if (config.getVlanID() != VlanConfig.NOT_CONFIGURED_ID) {
+            this.configs.addConfig(config);
+            this.vlanListModel.addVlanConfig(config);
+            printCurrentConfig();
+        }
     }
 
     private void onSetBanner() throws InvalidConfigException {
@@ -109,22 +165,18 @@ public class BuilderGUI extends JFrame {
 
         BannerConfig config = new BannerConfig(banner);
 
-        if (!this.configs.contains(config)) {
-            this.configs.add(config);
-        } else {
-            this.configs.remove(config);
-        }
+        this.configs.addConfig(config);
 
         printCurrentConfig();
     }
 
     private void onRemoveHostname() {
-        this.configs.remove(new HostnameConfig(""));
+        this.configs.removeConfig(new HostnameConfig(""));
         printCurrentConfig();
     }
 
     private void onRemoveBanner() {
-        this.configs.remove(new BannerConfig(""));
+        this.configs.removeConfig(new BannerConfig(""));
         printCurrentConfig();
     }
 
@@ -132,26 +184,40 @@ public class BuilderGUI extends JFrame {
         LoggingSynchronousConfig config = new LoggingSynchronousConfig();
 
         if (this.cbLoggingSync.isSelected()) {
-            this.configs.add(config);
+            this.configs.addConfig(config);
         } else {
-            this.configs.remove(config);
+            this.configs.removeConfig(config);
         }
 
         printCurrentConfig();
     }
 
-    private void printCurrentConfig() {
-        StringBuilder output = new StringBuilder();
+    private void onRemoveVlanConfig() {
+        VlanConfig config = this.lsVlanConfigs.getSelectedValue();
 
-        this.taOutput.setText("");
-
-        output.append("enable\n").append("configure terminal\n!\n");
-
-        for (Config c : this.configs) {
-            output.append(c.generateConfigurationString()).append("\n!\n");
+        if (config != null) {
+            this.configs.removeConfig(config);
+            this.vlanListModel.removeVlanConfig(config);
+            printCurrentConfig();
         }
+    }
 
-        this.taOutput.setText(output.toString());
+    private void onUpdateVlanConfig() {
+        VlanConfig config = this.lsVlanConfigs.getSelectedValue();
+
+        if (config != null) {
+            VlanDialog dialog = new VlanDialog(config);
+            dialog.setVisible(true);
+
+            this.configs.updateConfig(config);
+            this.vlanListModel.updateVlan(config);
+
+            printCurrentConfig();
+        }
+    }
+
+    private void printCurrentConfig() {
+        this.taOutput.setText(configs.generateConfigScript());
     }
 
     public static void main(String[] args) {
